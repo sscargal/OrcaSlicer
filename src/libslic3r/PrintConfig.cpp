@@ -217,7 +217,8 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WallDirection)
 //BBS
 static t_config_enum_values s_keys_map_PrintSequence {
     { "by layer",     int(PrintSequence::ByLayer) },
-    { "by object",    int(PrintSequence::ByObject) }
+    { "by object",    int(PrintSequence::ByObject) },
+    { "by cluster",   int(PrintSequence::ByLayerClustered) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintSequence)
 
@@ -1506,8 +1507,10 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<PrintSequence>::get_enum_values();
     def->enum_values.push_back("by layer");
     def->enum_values.push_back("by object");
+    def->enum_values.push_back("by cluster");
     def->enum_labels.push_back(L("By layer"));
     def->enum_labels.push_back(L("By object"));
+    def->enum_labels.push_back(L("By cluster"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<PrintSequence>(PrintSequence::ByLayer));
 

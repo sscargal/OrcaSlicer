@@ -4201,7 +4201,52 @@ LayerResult GCode::process_layer(
             instances_to_print = sort_print_object_instances(objects_by_extruder_it->second, layers, &new_ordering, single_object_instance_idx);
         }
         else {
-            instances_to_print = sort_print_object_instances(objects_by_extruder_it->second, layers, ordering, single_object_instance_idx);
+            if (m_config.print_sequence == PrintSequence::ByLayerClustered) {
+                // --- Clustered Printing Logic ---
+                // First, get the list of instances to print using the default ordering to get the correct set of active instances.
+                instances_to_print = sort_print_object_instances(objects_by_extruder_it->second, layers, ordering, single_object_instance_idx);
+
+                if (instances_to_print.size() > 1) {
+                    // Now, re-sort this vector using the nearest-neighbor algorithm.
+                    std::vector<InstanceToPrint> sorted_instances;
+                    sorted_instances.reserve(instances_to_print.size());
+
+                    // Find the starting instance closest to the current extruder position.
+                    auto start_it = std::min_element(instances_to_print.begin(), instances_to_print.end(),
+                        [this](const InstanceToPrint& a, const InstanceToPrint& b) {
+                            Point center_a = a.print_object.bounding_box().center();
+                            center_a.translate(a.print_object.instances()[a.instance_id].shift);
+                            Point center_b = b.print_object.bounding_box().center();
+                            center_b.translate(b.print_object.instances()[b.instance_id].shift);
+                            return (center_a - this->m_last_pos).cast<double>().squaredNorm() < (center_b - this->m_last_pos).cast<double>().squaredNorm();
+                        });
+                    
+                    InstanceToPrint current_instance = *start_it;
+                    sorted_instances.push_back(current_instance);
+                    instances_to_print.erase(start_it);
+
+                    while (!instances_to_print.empty()) {
+                        Point last_center = current_instance.print_object.bounding_box().center();
+                        last_center.translate(current_instance.print_object.instances()[current_instance.instance_id].shift);
+
+                        auto closest_it = std::min_element(instances_to_print.begin(), instances_to_print.end(),
+                            [&last_center](const InstanceToPrint& a, const InstanceToPrint& b) {
+                                Point center_a = a.print_object.bounding_box().center();
+                                center_a.translate(a.print_object.instances()[a.instance_id].shift);
+                                Point center_b = b.print_object.bounding_box().center();
+                                center_b.translate(b.print_object.instances()[b.instance_id].shift);
+                                return (center_a - last_center).cast<double>().squaredNorm() < (center_b - last_center).cast<double>().squaredNorm();
+                            });
+                        
+                        current_instance = *closest_it;
+                        sorted_instances.push_back(current_instance);
+                        instances_to_print.erase(closest_it);
+                    }
+                    instances_to_print = sorted_instances;
+                }
+            } else {
+                instances_to_print = sort_print_object_instances(objects_by_extruder_it->second, layers, ordering, single_object_instance_idx);
+            }
         }
 
         // BBS

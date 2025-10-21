@@ -117,6 +117,7 @@ enum class PrintSequence {
     ByLayer,
     ByObject,
     ByDefault,
+    ByLayerClustered,
     Count,
 };
 
