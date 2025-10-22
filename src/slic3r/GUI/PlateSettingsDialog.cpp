@@ -400,9 +400,10 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     // Print Sequence
     m_print_seq_choice = new ComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240),-1), 0, NULL, wxCB_READONLY );
     m_print_seq_choice->Append(_L("Same as Global Print Sequence"));
-    for (auto i = PrintSequence::ByLayer; i < PrintSequence::ByDefault; i = PrintSequence(int(i) + 1)) {
+    for (auto i = PrintSequence::ByLayer; i <= PrintSequence::ByLayerClustered; i = PrintSequence(int(i) + 1)) {
         m_print_seq_choice->Append(to_print_sequence_name(i));
     }
+    BOOST_LOG_TRIVIAL(info) << "m_print_seq_choice has " << m_print_seq_choice->GetCount() << " items after population.";
     wxStaticText* m_print_seq_txt = new wxStaticText(this, wxID_ANY, _L("Print sequence"));
     m_print_seq_txt->SetFont(Label::Body_14);
     top_sizer->Add(m_print_seq_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxTOP | wxBOTTOM, FromDIP(5));
@@ -580,11 +581,14 @@ wxString PlateSettingsDialog::to_bed_type_name(BedType bed_type) {
 }
 
 wxString PlateSettingsDialog::to_print_sequence_name(PrintSequence print_seq) {
+    BOOST_LOG_TRIVIAL(info) << "to_print_sequence_name called for PrintSequence: " << int(print_seq);
     switch (print_seq) {
     case PrintSequence::ByLayer:
-        return _L("By Layer");
+        return _L("By layer");
     case PrintSequence::ByObject:
-        return _L("By Object");
+        return _L("By object");
+    case PrintSequence::ByLayerClustered:
+        return _L("By cluster");
     default:
         return _L("By Layer");
     }

@@ -4210,6 +4210,11 @@ LayerResult GCode::process_layer(
         }
 
         if (m_config.print_sequence == PrintSequence::ByLayerClustered && instances_to_print.size() > 1) {
+            gcode += "; CLUSTERED_PRINTING_ACTIVE\n";
+            gcode += "; Instances before clustering:\n";
+            for (const auto* inst_ptr : instances_to_print) {
+                gcode += ";   Object ID: " + std::to_string(inst_ptr->print_object.id()) + ", Instance ID: " + std::to_string(inst_ptr->instance_id) + "\n";
+            }
             std::vector<const InstanceToPrint*> sorted_instances;
             sorted_instances.reserve(instances_to_print.size());
 
@@ -4244,6 +4249,10 @@ LayerResult GCode::process_layer(
                 instances_to_print.erase(closest_it);
             }
             instances_to_print = sorted_instances;
+            gcode += "; Instances after clustering:\n";
+            for (const auto* inst_ptr : instances_to_print) {
+                gcode += ";   Object ID: " + std::to_string(inst_ptr->print_object.id()) + ", Instance ID: " + std::to_string(inst_ptr->instance_id) + "\n";
+            }
         }
 
         // BBS
