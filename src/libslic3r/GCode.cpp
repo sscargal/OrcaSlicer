@@ -4213,45 +4213,49 @@ LayerResult GCode::process_layer(
             gcode += "; CLUSTERED_PRINTING_ACTIVE\n";
             gcode += "; Instances before clustering:\n";
             for (const auto* inst_ptr : instances_to_print) {
-                gcode += ";   Object ID: " + std::to_string(inst_ptr->print_object.id()) + ", Instance ID: " + std::to_string(inst_ptr->instance_id) + "\n";
+                gcode += ";   Object ID: " + std::to_string(inst_ptr->print_object.get_id()) + ", Instance ID: " + std::to_string(inst_ptr->instance_id) + "\n";
             }
+
             std::vector<const InstanceToPrint*> sorted_instances;
             sorted_instances.reserve(instances_to_print.size());
 
-            auto start_it = std::min_element(instances_to_print.begin(), instances_to_print.end(),
+            // A copy of the pointers to the instances that still need to be sorted.
+            std::vector<const InstanceToPrint*> remaining_instances = instances_to_print;
+
+            // Find the instance closest to the last known print head position to start the cluster.
+            auto start_it = std::min_element(remaining_instances.begin(), remaining_instances.end(),
                 [this](const InstanceToPrint* a, const InstanceToPrint* b) {
-                    Point center_a = a->print_object.bounding_box().center();
-                    center_a += a->print_object.instances()[a->instance_id].shift;
-                    Point center_b = b->print_object.bounding_box().center();
-                    center_b += b->print_object.instances()[b->instance_id].shift;
+                    Point center_a = a->print_object.bounding_box().center() + a->print_object.instances()[a->instance_id].shift;
+                    Point center_b = b->print_object.bounding_box().center() + b->print_object.instances()[b->instance_id].shift;
                     return (center_a - this->m_last_pos).cast<double>().squaredNorm() < (center_b - this->m_last_pos).cast<double>().squaredNorm();
                 });
             
             const InstanceToPrint* current_instance = *start_it;
             sorted_instances.push_back(current_instance);
-            instances_to_print.erase(start_it);
+            remaining_instances.erase(start_it);
 
-            while (!instances_to_print.empty()) {
-                Point last_center = current_instance->print_object.bounding_box().center();
-                last_center += current_instance->print_object.instances()[current_instance->instance_id].shift;
+            // Iteratively find the next nearest neighbor until all instances are sorted.
+            while (!remaining_instances.empty()) {
+                Point last_center = current_instance->print_object.bounding_box().center() + current_instance->print_object.instances()[current_instance->instance_id].shift;
 
-                auto closest_it = std::min_element(instances_to_print.begin(), instances_to_print.end(),
+                auto closest_it = std::min_element(remaining_instances.begin(), remaining_instances.end(),
                     [&last_center](const InstanceToPrint* a, const InstanceToPrint* b) {
-                        Point center_a = a->print_object.bounding_box().center();
-                        center_a += a->print_object.instances()[a->instance_id].shift;
-                        Point center_b = b->print_object.bounding_box().center();
-                        center_b += b->print_object.instances()[b->instance_id].shift;
+                        Point center_a = a->print_object.bounding_box().center() + a->print_object.instances()[a->instance_id].shift;
+                        Point center_b = b->print_object.bounding_box().center() + b->print_object.instances()[b->instance_id].shift;
                         return (center_a - last_center).cast<double>().squaredNorm() < (center_b - last_center).cast<double>().squaredNorm();
                     });
                 
                 current_instance = *closest_it;
                 sorted_instances.push_back(current_instance);
-                instances_to_print.erase(closest_it);
+                remaining_instances.erase(closest_it);
             }
-            instances_to_print = sorted_instances;
+
+            // Replace the original instance list with the newly sorted one.
+            instances_to_print = std::move(sorted_instances);
+
             gcode += "; Instances after clustering:\n";
             for (const auto* inst_ptr : instances_to_print) {
-                gcode += ";   Object ID: " + std::to_string(inst_ptr->print_object.id()) + ", Instance ID: " + std::to_string(inst_ptr->instance_id) + "\n";
+                gcode += ";   Object ID: " + std::to_string(inst_ptr->print_object.get_id()) + ", Instance ID: " + std::to_string(inst_ptr->instance_id) + "\n";
             }
         }
 

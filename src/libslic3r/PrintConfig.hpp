@@ -116,8 +116,8 @@ enum class WallDirection
 enum class PrintSequence {
     ByLayer,
     ByObject,
-    ByDefault,
     ByLayerClustered,
+    ByDefault,
     Count,
 };
 

@@ -400,8 +400,13 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     // Print Sequence
     m_print_seq_choice = new ComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240),-1), 0, NULL, wxCB_READONLY );
     m_print_seq_choice->Append(_L("Same as Global Print Sequence"));
-    for (auto i = PrintSequence::ByLayer; i <= PrintSequence::ByLayerClustered; i = PrintSequence(int(i) + 1)) {
-        m_print_seq_choice->Append(to_print_sequence_name(i));
+    const std::vector<PrintSequence> sequences_to_add = {
+        PrintSequence::ByLayer,
+        PrintSequence::ByObject,
+        PrintSequence::ByLayerClustered
+    };
+    for (const auto& seq : sequences_to_add) {
+        m_print_seq_choice->Append(to_print_sequence_name(seq));
     }
     BOOST_LOG_TRIVIAL(info) << "m_print_seq_choice has " << m_print_seq_choice->GetCount() << " items after population.";
     wxStaticText* m_print_seq_txt = new wxStaticText(this, wxID_ANY, _L("Print sequence"));

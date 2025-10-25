@@ -1433,6 +1433,13 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         return;
     }
 
+    if (opt_key == "print_sequence" && m_type == Preset::TYPE_MODEL) {
+        if (Field* field = this->get_field(opt_key)) {
+            field->set_value(m_config->opt_int(opt_key), false);
+        }
+        return;
+    }
+
     if (opt_key == "compatible_prints")
         this->compatible_widget_reload(m_compatible_prints);
     if (opt_key == "compatible_printers")
